@@ -438,3 +438,16 @@ def test_heartbeat_suppressed_during_silent_baseline(tmp_path: Path):
         )
     assert notifier.notify_calls == []
     assert notifier.heartbeat_calls == []
+
+
+def test_test_notify_sends_fake_slot_and_skips_upstream(tmp_path: Path):
+    from dl_reservation import poll as poll_module
+
+    rec = _RecordNotifier()
+    with patch.object(poll_module, "_build_default_notifier", return_value=rec), \
+         patch.object(poll_module, "fetch_month") as fetch:
+        rc = poll_module.main(["--config", "config.example.json", "--test-notify"])
+    assert rc == 0
+    assert fetch.call_count == 0
+    assert rec.notify_calls == [[poll_module._TEST_SLOT]]
+    assert poll_module._TEST_SLOT.date.startswith("2099")

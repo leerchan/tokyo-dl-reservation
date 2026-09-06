@@ -316,6 +316,15 @@ def main(argv: list[str] | None = None) -> int:
             "cancels (per ADR-6 single-shot)."
         ),
     )
+    parser.add_argument(
+        "--test-notify",
+        action="store_true",
+        help=(
+            "Send one FAKE opening through every configured notifier "
+            "(stdout / email / Bark) and exit. Verifies env-var wiring "
+            "before trusting cron. No upstream request is made."
+        ),
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(
@@ -332,6 +341,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.cancel_booking:
         return _cancel_booking_flow(args)
 
+    if args.test_notify:
+        return _test_notify_flow()
+
     request = load_from_file(args.config)
     notifier = _build_default_notifier()
     booker = _build_booker(args) if args.enable_booker else None
@@ -341,6 +353,23 @@ def main(argv: list[str] | None = None) -> int:
         silent_baseline=args.silent_baseline,
         booker=booker,
     )
+    return 0
+
+
+# ponytail: clearly-fake slot (year 2099, displaytime says TEST) so a stray
+# run can never be mistaken for a real opening.
+_TEST_SLOT = Slot(
+    date="20991231", starttime="0900", endtime="1030",
+    place="270", course="11", capacity=1, reservation=0,
+    displaytime="【TEST】通知テスト",
+)
+
+
+def _test_notify_flow() -> int:
+    notifier = _build_default_notifier()
+    _log.info("sending test notification via %s", type(notifier).__name__)
+    notifier.notify([_TEST_SLOT])
+    _log.info("test notification sent — check your inbox / phone")
     return 0
 
 
