@@ -373,27 +373,35 @@ def _test_notify_flow() -> int:
     return 0
 
 
-def _cancel_booking_flow(args: argparse.Namespace) -> int:
-    """User-initiated cancel: API call + local state clear. Exit code != 0 on failure."""
-    booked_path = booking_state.path_for(args.state)
+def cancel_held_booking(state: Path) -> tuple[bool, str]:
+    """Cancel the held booking via upstream + clear local state.
+
+    Shared by `--cancel-booking` and the one-tap cancel server. Returns
+    (ok, human-readable message); never raises.
+    """
+    booked_path = booking_state.path_for(state)
     booked = booking_state.load(booked_path)
     if booked is None:
-        _log.error("no BOOKED state at %s — nothing to cancel", booked_path)
-        return 1
+        return False, f"no BOOKED state at {booked_path} — nothing to cancel"
     try:
         creds = credentials_module.load()
     except credentials_module.CredentialsNotFound as e:
-        _log.error("cancel aborted — %s", e)
-        return 2
+        return False, f"cancel aborted — {e}"
     _log.info("cancelling booking %s %s %s/%s",
               booked.date, booked.starttime, booked.place, booked.course)
     result = cancel_booking(booked, creds)
     if not result.success:
-        _log.error("cancel failed (state file kept): %s", result.failure_reason)
-        return 3
+        return False, f"cancel failed (state file kept): {result.failure_reason}"
     booking_state.clear(booked_path)
-    _log.info("cancel ACK from upstream; local BOOKED state cleared")
-    return 0
+    return True, (f"cancelled {booked.date} {booked.starttime}-{booked.endtime}; "
+                  "local BOOKED state cleared")
+
+
+def _cancel_booking_flow(args: argparse.Namespace) -> int:
+    """User-initiated cancel: API call + local state clear. Exit code != 0 on failure."""
+    ok, msg = cancel_held_booking(args.state)
+    (_log.info if ok else _log.error)(msg)
+    return 0 if ok else 1
 
 
 def _build_booker(args: argparse.Namespace) -> Booker | None:

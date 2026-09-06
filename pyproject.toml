@@ -16,6 +16,7 @@ Issues = "https://github.com/NYTC69/tokyo-dl-reservation/issues"
 
 [project.scripts]
 dl-poll = "dl_reservation.poll:main"
+dl-cancel-server = "dl_reservation.cancel_server:main"
 
 [dependency-groups]
 dev = [

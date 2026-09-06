@@ -19,6 +19,16 @@ services:
       - ./config.local.json:/app/config.local.json:ro
       - ./state:/app/state
 
+  # 一键取消:Bark 推送里的链接指到这里。手机经 Tailscale 访问。
+  cancel-me:
+    <<: *poller
+    env_file: .env.local
+    command: dl-cancel-server --state /app/state/snapshot.json
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./state:/app/state
+
   partner:
     <<: *poller
     env_file: .env.partner.local

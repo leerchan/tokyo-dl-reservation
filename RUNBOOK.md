@@ -53,6 +53,10 @@
 ./scripts/run_poll.sh --cancel-booking
 #    --cancel-booking 用 .env.local 里的 booker 凭据调上游 /cancel,
 #    成功后才删 state/booked.json。失败保留 state 让你 debug。
+#    c) 一键取消(手机):.env.local 填 DL_RES_CANCEL_TOKEN(随机串)+
+#       DL_RES_CANCEL_URL(Tailscale 地址,如 http://mac.tailnet.ts.net:8787),
+#       `docker compose up -d cancel-me`。之后"予約成功"的 Bark 推送
+#       点开 → 页面按"予約を取消" → 走的就是 b) 的同一流程。
 ```
 
 **ADR-6 single-shot 状态机**:WATCHING(无 `state/booked.json`)→ 抢

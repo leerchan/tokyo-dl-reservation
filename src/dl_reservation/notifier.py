@@ -643,7 +643,11 @@ class BarkNotifier:
             f"{PLACES.get(slot.place, slot.place)} receipt={slot.receipt_no}"
         )
         body += "".join(f"\n{k}={v}" for k, v in _extract_id_fields(confirmation_body))
-        self._push("予約成功 — サイトで要確認", body, level="critical")
+        from .cancel_server import cancel_link  # local: avoid poll<->notifier import cycle
+        link = cancel_link()
+        if link:
+            body += "\n(タップで取消ページ)"
+        self._push("予約成功 — サイトで要確認", body, level="critical", url=link)
 
     def booking_failed(self, target: Slot, reason: str) -> None:
         self._push("予約失敗", f"{_format_slot_line(target)}\n{reason}")
@@ -655,10 +659,15 @@ class BarkNotifier:
             level="passive",
         )
 
-    def _push(self, title: str, body: str, *, level: str = "timeSensitive") -> None:
+    def _push(
+        self, title: str, body: str, *, level: str = "timeSensitive", url: str | None = None
+    ) -> None:
+        payload = {"title": title, "body": body, "group": "dl-reservation", "level": level}
+        if url:
+            payload["url"] = url  # Bark opens this on tap
         resp = httpx.post(
             self._url,
-            json={"title": title, "body": body, "group": "dl-reservation", "level": level},
+            json=payload,
             timeout=10.0,
         )
         resp.raise_for_status()
