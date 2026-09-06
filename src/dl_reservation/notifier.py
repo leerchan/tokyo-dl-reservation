@@ -19,6 +19,8 @@ import logging
 import os
 import smtplib
 from dataclasses import dataclass
+
+import httpx
 from datetime import date
 from email.message import EmailMessage
 from typing import Iterable, Protocol
@@ -593,6 +595,74 @@ class EmailNotifier:
         with smtplib.SMTP_SSL(host, port) as smtp:
             smtp.login(user, password)
             smtp.send_message(msg)
+
+
+class BarkNotifier:
+    """iOS push via Bark (https://bark.day.app).
+
+    One env var: the push URL, `https://api.day.app/<device_key>` or a
+    self-hosted equivalent. Bark accepts a JSON POST to that URL.
+    """
+
+    ENV_URL = "DL_RES_BARK_URL"
+    _MAX_LINES = 8  # ponytail: push body is small; email has the full list
+
+    def __init__(self, url: str, log: logging.Logger | None = None) -> None:
+        self._url = url.rstrip("/")
+        self._log = log or logging.getLogger("dl_reservation.notify.bark")
+
+    @classmethod
+    def from_env(cls) -> "BarkNotifier":
+        url = os.environ.get(cls.ENV_URL)
+        if not url:
+            raise RuntimeError(f"missing required env vars: {cls.ENV_URL}")
+        return cls(url)
+
+    def notify(self, openings: Iterable[Slot]) -> None:
+        slots = list(openings)
+        if not slots:
+            return
+        lines = [_format_slot_line(s) for s in slots]
+        more = f"\n…+{len(lines) - self._MAX_LINES}" if len(lines) > self._MAX_LINES else ""
+        self._push(f"空席 ×{len(slots)}", "\n".join(lines[: self._MAX_LINES]) + more)
+
+    def heartbeat(self, payload: HeartbeatPayload) -> None:
+        self._push(
+            "heartbeat: まだ空席なし",
+            f"≤{payload.deadline.isoformat()} / "
+            f"{payload.total_slots_in_window} slots in window / "
+            f"last poll {payload.last_poll_at}",
+            level="passive",
+        )
+
+    def booked(
+        self, slot: BookedSlot, *, confirmation_body: dict | None = None
+    ) -> None:
+        body = (
+            f"{slot.date} {slot.starttime}-{slot.endtime} "
+            f"{PLACES.get(slot.place, slot.place)} receipt={slot.receipt_no}"
+        )
+        body += "".join(f"\n{k}={v}" for k, v in _extract_id_fields(confirmation_body))
+        self._push("予約成功 — サイトで要確認", body, level="critical")
+
+    def booking_failed(self, target: Slot, reason: str) -> None:
+        self._push("予約失敗", f"{_format_slot_line(target)}\n{reason}")
+
+    def dry_run_payload(self, target: Slot, payload: dict) -> None:
+        self._push(
+            "dry-run payload",
+            f"{_format_slot_line(target)}\nkeys={sorted(payload)}",
+            level="passive",
+        )
+
+    def _push(self, title: str, body: str, *, level: str = "timeSensitive") -> None:
+        resp = httpx.post(
+            self._url,
+            json={"title": title, "body": body, "group": "dl-reservation", "level": level},
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+        self._log.info("bark pushed: %s", title)
 
 
 class TeeNotifier:

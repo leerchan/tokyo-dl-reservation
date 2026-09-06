@@ -107,6 +107,8 @@ A small polling loop that:
 3. When a new open slot appears within your acceptable date range:
    - Sends you an email immediately (with how-to-book instructions and a
      direct entry-page link).
+   - **Optional**: also pushes to your iPhone via [Bark](https://bark.day.app)
+     — set `DL_RES_BARK_URL` in `.env.local` (see `.env.example`).
    - **Optional**: auto-submits a booking via `/putres` (single-shot, with
      a mandatory dry-run first; see `DECISIONS.md#ADR-5`/`ADR-6`).
 4. After a successful booking:

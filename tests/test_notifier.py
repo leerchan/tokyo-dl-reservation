@@ -6,6 +6,7 @@ import pytest
 
 from dl_reservation.booking_state import BookedSlot
 from dl_reservation.notifier import (
+    BarkNotifier,
     EmailNotifier,
     HeartbeatPayload,
     StdoutNotifier,
@@ -259,3 +260,25 @@ def test_email_notifier_heartbeat_sends_with_status_subject(monkeypatch):
     body = sent[0].get_content()
     assert "2026-05-20" in body
     assert "3 place(s)" in body
+
+
+def test_bark_notifier_posts_openings_and_skips_empty(monkeypatch):
+    monkeypatch.setenv("DL_RES_BARK_URL", "https://api.day.app/devicekey/")
+    with patch("dl_reservation.notifier.httpx.post") as post:
+        n = BarkNotifier.from_env()
+        n.notify([])
+        assert post.call_count == 0
+        n.notify([_slot()])
+        post.assert_called_once()
+        url = post.call_args.args[0]
+        payload = post.call_args.kwargs["json"]
+        assert url == "https://api.day.app/devicekey"
+        assert payload["title"] == "空席 ×1"
+        assert "府中" in payload["body"] and "0800-0930" in payload["body"]
+        assert payload["level"] == "timeSensitive"
+
+
+def test_bark_notifier_from_env_requires_url(monkeypatch):
+    monkeypatch.delenv("DL_RES_BARK_URL", raising=False)
+    with pytest.raises(RuntimeError, match="DL_RES_BARK_URL"):
+        BarkNotifier.from_env()

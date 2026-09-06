@@ -22,6 +22,7 @@ from . import snapshot
 from .booker import Booker, BookerOutcome, cancel_booking
 from .config import ReservationRequest, load_from_file
 from .notifier import (
+    BarkNotifier,
     EmailNotifier,
     HeartbeatPayload,
     Notifier,
@@ -87,6 +88,9 @@ def _build_default_notifier() -> Notifier:
         _log.info("email notifier enabled (to=%s)", os.environ[EmailNotifier.ENV_TO])
     else:
         _log.info("email notifier disabled — required env vars not set")
+    if os.environ.get(BarkNotifier.ENV_URL):
+        children.append(BarkNotifier.from_env())
+        _log.info("bark notifier enabled")
     return children[0] if len(children) == 1 else TeeNotifier(*children)
 
 

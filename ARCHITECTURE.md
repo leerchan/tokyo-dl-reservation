@@ -21,7 +21,7 @@
   上一次快照,识别"新出现"的空缺。
 - `matcher/` — 把单个用户的预约请求(license type, prefecture,
   preferred 試験場, latest_acceptable_date)与新空缺匹配。
-- `notifier/` — 命中时通知用户(v0:邮件 / LINE — 待定)。
+- `notifier.py` — 命中时通知用户:stdout 常开,邮件(SMTP)/ Bark(iOS 推送)按环境变量启用,`TeeNotifier` 扇出。
 - `config/` & `state/` — 用户请求模型 + 上次快照持久化(v0 用本地
   文件 / SQLite 即可)。
 
