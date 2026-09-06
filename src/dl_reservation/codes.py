@@ -10,6 +10,11 @@ from __future__ import annotations
 API_BASE = "https://license-test-tokyo-prd-police-pref-api.tokyo-madoguchi-yoyaku.com"
 SITE_BASE = "https://license-test.tokyo-madoguchi-yoyaku.com/police-pref-tokyo/01"
 USER_TOKEN = "pub"  # window.userInfo literal — required by /calgetres
+# WAF (2026-09) 403s non-browser UAs; Origin/Referer alone don't pass.
+USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+)
 
 # placecode → 試験場 name (Tokyo)
 PLACES: dict[str, str] = {

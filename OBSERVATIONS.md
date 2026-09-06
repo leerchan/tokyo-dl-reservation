@@ -282,3 +282,18 @@ Entry template:
     向"更快的东京抢手脚本"。
 - **Anchor**: 用户视角的产品方向陈述(2026-05-08);供给侧实测
   数据待 v1 上线后第一周实地采集 13 都道府県对照表。
+
+### WAF 拦截非浏览器 UA(2026-09-06)
+
+- **Task context**: `probe_calgetres.py` 突然全 403,排查请求头。
+- **Date**: 2026-09-06
+- **实测**(`GET /calgetres?date=202609&coursecode=12&placecode=270&user=pub`):
+  - curl 默认 UA + Referer → 403
+  - Chrome UA,不带 Origin/Referer → 200
+  - Chrome UA + `Origin: chrome-extension://…` → 200(WAF 只看 UA)
+- 响应 `access-control-allow-origin` 写死 `https://license-test.tokyo-madoguchi-yoyaku.com`。
+  浏览器扩展跨域读需 MV3 background + `host_permissions`,或从页面 content
+  script 同源发请求。
+- 2026-05 时 httpx 默认 UA 可通,故 5 月记录的 `/putres` "标准 User-Agent"
+  现已不成立;`codes.USER_AGENT` 统一供 calgetres 与 putres 使用。
+- **Anchor**: 本机 curl(2026-09-06 17:4x JST)。

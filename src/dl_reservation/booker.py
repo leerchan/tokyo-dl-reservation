@@ -28,7 +28,7 @@ from enum import Enum
 import httpx
 
 from .booking_state import BookedSlot
-from .codes import API_BASE
+from .codes import API_BASE, USER_AGENT
 from .credentials import BookerCredentials
 from .upstream import Slot
 
@@ -134,6 +134,7 @@ _RETRY_DELAYS_SECONDS = (1, 3, 9)  # ADR-5 §3: max 3 retries, exp backoff
 _PUTRES_HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json; charset=UTF-8",
+    "User-Agent": USER_AGENT,
     "Origin": "https://license-test.tokyo-madoguchi-yoyaku.com",
     "Referer": (
         "https://license-test.tokyo-madoguchi-yoyaku.com"

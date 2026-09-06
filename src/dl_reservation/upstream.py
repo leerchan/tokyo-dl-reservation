@@ -12,7 +12,7 @@ from datetime import date, datetime
 
 import httpx
 
-from .codes import API_BASE, USER_TOKEN
+from .codes import API_BASE, USER_AGENT, USER_TOKEN
 
 
 class CalGetResError(RuntimeError):
@@ -80,6 +80,7 @@ def fetch_month(
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout, headers={
         "Accept": "application/json",
+        "User-Agent": USER_AGENT,
         "Origin": "https://license-test.tokyo-madoguchi-yoyaku.com",
         "Referer": (
             "https://license-test.tokyo-madoguchi-yoyaku.com"
