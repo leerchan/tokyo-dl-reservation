@@ -1,0 +1,30 @@
+# ponytail: 一人一个容器,共用镜像。多人预约不改代码 —— booker 是
+# single-shot 且 state 按目录隔离,复制一个 service 就是第二个人。
+x-poller: &poller
+  image: tokyo-dl-poll:latest
+  build: .
+  restart: unless-stopped
+  environment: &poller-env
+    POLL_INTERVAL: "300"
+    # 监控+邮件:保持原样。开 booker:
+    #   "--silent-baseline --enable-booker"             → dry-run 审 payload
+    #   "--silent-baseline --enable-booker --book-real" → 真下单
+    DL_RES_FLAGS: "--silent-baseline"
+
+services:
+  me:
+    <<: *poller
+    env_file: .env.local
+    volumes:
+      - ./config.local.json:/app/config.local.json:ro
+      - ./state:/app/state
+
+  partner:
+    <<: *poller
+    env_file: .env.partner.local
+    environment:
+      <<: *poller-env
+      START_DELAY: "150"   # 错开半个周期,别和 me 同一秒打上游
+    volumes:
+      - ./config.partner.local.json:/app/config.local.json:ro
+      - ./state-partner:/app/state

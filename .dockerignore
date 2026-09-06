@@ -1,0 +1,5 @@
+.env*
+!.env.example
+*.local.json
+state/
+.git/
