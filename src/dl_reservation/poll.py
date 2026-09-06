@@ -126,7 +126,9 @@ def poll_once(
             for yyyymm in months:
                 fetched.extend(fetch_month(place, course, yyyymm, client=client))
 
-    relevant = _filter_relevant(fetched, request, today, now=datetime.now())
+    # `now` is aware UTC (heartbeat clock); Slot.start_datetime is naive JST.
+    local_now = now.astimezone().replace(tzinfo=None)
+    relevant = _filter_relevant(fetched, request, today, now=local_now)
     prev = snapshot.load(state_path)
     is_first_run = not prev
     new_openings = snapshot.diff_new_openings(prev, relevant)

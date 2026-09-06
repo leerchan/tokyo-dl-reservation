@@ -116,6 +116,7 @@ def test_silent_baseline_persists_without_notifying(tmp_path: Path):
         new = poll_once(
             request, state, Capture(),
             today=date(2026, 5, 8),
+            now=datetime(2026, 5, 8, 0, 0, tzinfo=timezone.utc),
             silent_baseline=True,
         )
 
@@ -151,12 +152,14 @@ def test_second_run_after_silent_baseline_emits_only_real_new(tmp_path: Path):
         poll_once(
             request, state, Capture(),
             today=date(2026, 5, 8),
+            now=datetime(2026, 5, 8, 0, 0, tzinfo=timezone.utc),
             silent_baseline=True,
         )
     with patch("dl_reservation.poll.fetch_month", return_value=[baseline, later]):
         poll_once(
             request, state, Capture(),
             today=date(2026, 5, 8),
+            now=datetime(2026, 5, 8, 0, 0, tzinfo=timezone.utc),
             silent_baseline=True,
         )
 
