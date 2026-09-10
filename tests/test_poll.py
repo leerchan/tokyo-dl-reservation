@@ -451,3 +451,17 @@ def test_test_notify_sends_fake_slot_and_skips_upstream(tmp_path: Path):
     assert fetch.call_count == 0
     assert rec.notify_calls == [[poll_module._TEST_SLOT]]
     assert poll_module._TEST_SLOT.date.startswith("2099")
+
+
+def test_earliest_acceptable_date_excludes_earlier_slots():
+    req = ReservationRequest(
+        candidate_places=("270",),
+        candidate_courses=("11",),
+        earliest_acceptable_date=date(2026, 6, 10),
+        latest_acceptable_date=date(2026, 6, 30),
+    )
+    kept = _filter_relevant(
+        [_slot("20260605"), _slot("20260610"), _slot("20260620")],
+        req, today=date(2026, 5, 1), now=datetime(2026, 5, 1, 8, 0),
+    )
+    assert [s.date for s in kept] == ["20260610", "20260620"]

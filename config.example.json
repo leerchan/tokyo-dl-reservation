@@ -1,5 +1,6 @@
 {
   "candidate_places": ["270", "280", "250"],
   "candidate_courses": ["11", "61"],
+  "earliest_acceptable_date": "2026-05-20",
   "latest_acceptable_date": "2026-06-15"
 }

@@ -116,7 +116,9 @@ def poll_once(
     """
     today = today or date.today()
     now = now or heartbeat_state.utc_now()
-    months = _months_to_cover(today, request.latest_acceptable_date)
+    months = _months_to_cover(
+        max(today, request.earliest_acceptable_date), request.latest_acceptable_date
+    )
     _log.info(
         "polling places=%s courses=%s months=%s",
         list(request.candidate_places),
