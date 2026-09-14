@@ -6,10 +6,7 @@ x-poller: &poller
   restart: unless-stopped
   environment: &poller-env
     POLL_INTERVAL: "300"
-    # 监控+邮件:保持原样。开 booker:
-    #   "--silent-baseline --enable-booker"             → dry-run 审 payload
-    #   "--silent-baseline --enable-booker --book-real" → 真下单
-    DL_RES_FLAGS: "--silent-baseline"
+    # DL_RES_FLAGS 在各自的 .env.local 里设(每人不同,且服务器上不必改本文件)
 
 services:
   me:

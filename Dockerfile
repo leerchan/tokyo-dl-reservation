@@ -10,4 +10,4 @@ ENV TZ=Asia/Tokyo PYTHONUNBUFFERED=1
 # ponytail: sleep loop instead of cron/supervisord — one process, and
 # `restart: unless-stopped` is the supervisor. Swap to host cron +
 # `docker run --rm` only if you need per-run isolation.
-CMD ["sh", "-c", "sleep ${START_DELAY:-0}; while :; do dl-poll --config /app/config.local.json --state /app/state/snapshot.json $DL_RES_FLAGS; sleep ${POLL_INTERVAL:-300}; done"]
+CMD ["sh", "-c", "sleep ${START_DELAY:-0}; while :; do dl-poll --config /app/config.local.json --state /app/state/snapshot.json ${DL_RES_FLAGS:---silent-baseline}; sleep ${POLL_INTERVAL:-300}; done"]
