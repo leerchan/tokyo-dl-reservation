@@ -77,7 +77,7 @@ def test_email_notifier_sends_when_openings(monkeypatch):
         EmailNotifier().notify([_slot()])
     assert len(sent) == 1
     subject = sent[0]["Subject"]
-    assert subject.startswith("[dl-reservation] 空席 ×1:")
+    assert subject.startswith("[dl-reservation/") and "] 空席 ×1:" in subject
     assert "06/01" in subject
     assert "u@example.com, b@example.com" == sent[0]["To"]
     body = sent[0].get_content()
@@ -273,7 +273,7 @@ def test_bark_notifier_posts_openings_and_skips_empty(monkeypatch):
         url = post.call_args.args[0]
         payload = post.call_args.kwargs["json"]
         assert url == "https://api.day.app/devicekey"
-        assert payload["title"] == "空席 ×1"
+        assert payload["title"].endswith("] 空席 ×1")
         assert "府中" in payload["body"] and "0800-0930" in payload["body"]
         assert payload["level"] == "timeSensitive"
 

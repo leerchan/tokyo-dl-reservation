@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import smtplib
+import socket
 from dataclasses import dataclass
 
 import httpx
@@ -57,6 +58,11 @@ class Notifier(Protocol):
     def booking_failed(self, target: Slot, reason: str) -> None: ...
 
     def dry_run_payload(self, target: Slot, payload: dict) -> None: ...
+
+
+def _who() -> str:
+    """Which container sent this — compose sets `hostname:` per person."""
+    return socket.gethostname()
 
 
 _WEEKDAY_JA = ["月", "火", "水", "木", "金", "土", "日"]
@@ -416,7 +422,7 @@ class EmailNotifier:
             for s in slots
         )
         self._send(
-            subject=f"[dl-reservation] 空席 ×{len(slots)}: {slot_summary}",
+            subject=f"[dl-reservation/{_who()}] 空席 ×{len(slots)}: {slot_summary}",
             body=body,
         )
         self._log.info("emailed %d opening(s): %s", len(slots), slot_summary)
@@ -433,7 +439,7 @@ class EmailNotifier:
         )
         self._send(
             subject=(
-                f"[dl-reservation] still no slot ≤ {payload.deadline.isoformat()}"
+                f"[dl-reservation/{_who()}] still no slot ≤ {payload.deadline.isoformat()}"
             ),
             body=body,
         )
@@ -492,7 +498,7 @@ class EmailNotifier:
         )
         msg = self._compose(
             subject=(
-                f"[dl-reservation] 🎉 予約成立 {slot.date[4:6]}/{slot.date[6:8]} "
+                f"[dl-reservation/{_who()}] 🎉 予約成立 {slot.date[4:6]}/{slot.date[6:8]} "
                 f"{slot.starttime[:2]}:{slot.starttime[2:]} {place_name}"
             ),
             body=body,
@@ -532,7 +538,7 @@ class EmailNotifier:
         )
         self._send(
             subject=(
-                f"[dl-reservation] ⚠️ booking FAILED "
+                f"[dl-reservation/{_who()}] ⚠️ booking FAILED "
                 f"{target.date[4:6]}/{target.date[6:8]} {target.starttime}"
             ),
             body=body,
@@ -563,7 +569,7 @@ class EmailNotifier:
         )
         self._send(
             subject=(
-                f"[dl-reservation] 🧪 DRY-RUN payload review "
+                f"[dl-reservation/{_who()}] 🧪 DRY-RUN payload review "
                 f"({target.date[4:6]}/{target.date[6:8]} {target.starttime})"
             ),
             body=body,
@@ -662,7 +668,7 @@ class BarkNotifier:
     def _push(
         self, title: str, body: str, *, level: str = "timeSensitive", url: str | None = None
     ) -> None:
-        payload = {"title": title, "body": body, "group": "dl-reservation", "level": level}
+        payload = {"title": f"[{_who()}] {title}", "body": body, "group": "dl-reservation", "level": level}
         if url:
             payload["url"] = url  # Bark opens this on tap
         resp = httpx.post(
