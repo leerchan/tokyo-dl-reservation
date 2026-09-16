@@ -297,3 +297,21 @@ Entry template:
 - 2026-05 时 httpx 默认 UA 可通,故 5 月记录的 `/putres` "标准 User-Agent"
   现已不成立;`codes.USER_AGENT` 统一供 calgetres 与 putres 使用。
 - **Anchor**: 本机 curl(2026-09-06 17:4x JST)。
+
+### マイナンバーカード有効期限 选单 — 纯前端校验,putres 不发(2026-09-10)
+
+- **Task context**: 用户在官方 UI 看到新增「マイナンバーカード有効期限」
+  年/月/日 选单,担心 booker 的 putres payload 缺字段。
+- **Date**: 2026-09-10
+- **事实**(内置浏览器拉 `MKAYMA001senddata.js` / `main.js` / `filterData.json`):
+  - 该选单只在 `newLicenseChoice`(卡片类型)= MYN(2)/ DUAL(3) 时显示并
+    `.valid()` 校验;IC(1)时隐藏。DOM id `mainaCardExpYear/Month/Day`。
+  - `putReservation()` 的 body 仍是 10 个字段:`date, coursecode, placecode,
+    starttime, endtime, license, phone, birthday, name, gracer_no`。
+    **有效期不进 payload**,也不进 `customerops` / `cancel`。
+  - 卡片类型决定 coursecode:IC→`11`,MYN/DUAL→`61`(`filterData.json`
+    `["11"]["0"][cardType]["0"].typeDetail`);getres / putres 同用该码,
+    config 已同时列 11 与 61。
+- **对本项目的影响**:无需改 booker。若上游哪天把有效期塞进 putres,
+  症状会是 putres 返回非 OK code,回灌时再加字段。
+- **Anchor**: `src/dl_reservation/booker.py#_build_putres_payload`。
