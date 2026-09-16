@@ -80,6 +80,16 @@ uv run pytest    # 烟囱测一下
 
 - Tail logs: `tail -f /tmp/dl-reservation.log`(假设 launchd plist 把
   stdout 重定向到这里,详见 §Scheduled jobs)。
+- 确认"确实没空位"而不是漏了:每轮 INFO 有一行
+  `fetched=N open_total=K in_window=M open_in_window=J new=X`。
+  `fetched=0` 或 WARNING `no months to poll` = 请求没发出去(deadline
+  已过);`open_total>0` 但 `open_in_window=0` = 有空位但在日期窗口
+  外;`open_in_window>0, new=0` = 空位早已在 snapshot 里,不是新的。
+  要看每个 (place, course, month) 返回多少行、每个开放 slot 的明细:
+  `.env.local` 里 `DL_RES_FLAGS=--log-level DEBUG`,然后
+  `docker compose up -d me && docker compose logs -f me`。
+  上一轮看到的全部 slot 就是 `state/snapshot.json`:
+  `jq '.slots[] | select(.reservation < .capacity)' state/snapshot.json`。
 - DB shell: 不适用(JSON 快照 = `cat state/snapshot.json | jq .`)。
 - 清缓存 / 重置:
   - `rm state/snapshot.json` — 重 baseline。下次跑若不带

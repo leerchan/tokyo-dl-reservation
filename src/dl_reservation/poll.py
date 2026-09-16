@@ -126,11 +126,21 @@ def poll_once(
         months,
     )
 
+    if not months:
+        _log.warning("no months to poll — latest_acceptable_date %s is in the past; "
+                     "zero upstream requests will be made", request.latest_acceptable_date)
     fetched: list[Slot] = []
     for place in request.candidate_places:
         for course in request.candidate_courses:
             for yyyymm in months:
-                fetched.extend(fetch_month(place, course, yyyymm, client=client))
+                rows = fetch_month(place, course, yyyymm, client=client)
+                _log.debug("place=%s course=%s month=%s rows=%d open=%d",
+                           place, course, yyyymm, len(rows), sum(r.is_open for r in rows))
+                fetched.extend(rows)
+    for s in fetched:
+        if s.is_open:
+            _log.debug("open slot: %s %s place=%s course=%s remaining=%d",
+                       s.date, s.starttime, s.place, s.course, s.remaining)
 
     # `now` is aware UTC (heartbeat clock); Slot.start_datetime is naive JST.
     local_now = now.astimezone().replace(tzinfo=None)
@@ -138,6 +148,13 @@ def poll_once(
     prev = snapshot.load(state_path)
     is_first_run = not prev
     new_openings = snapshot.diff_new_openings(prev, relevant)
+    # Audit line: lets `docker compose logs` prove "nothing was open" vs
+    # "open but outside the date window" vs "open but already in snapshot".
+    _log.info(
+        "fetched=%d open_total=%d in_window=%d open_in_window=%d new=%d",
+        len(fetched), sum(s.is_open for s in fetched),
+        len(relevant), sum(s.is_open for s in relevant), len(new_openings),
+    )
 
     # Once the user holds a booking, "new slot" alerts become noise — they
     # already have what they wanted. Suppress notify + heartbeat + booker;
