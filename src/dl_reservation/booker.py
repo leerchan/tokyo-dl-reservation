@@ -197,6 +197,11 @@ class Booker:
                 last_transient = f"network: {type(e).__name__}"
                 continue
 
+            if response.status_code >= 400:
+                # Upstream 500s on business rejections too (e.g. seat just
+                # taken) — the body is the only clue why.
+                _log.warning("putres HTTP %d body=%r",
+                             response.status_code, response.text[:500])
             if 500 <= response.status_code < 600:
                 last_transient = f"HTTP {response.status_code}"
                 continue
