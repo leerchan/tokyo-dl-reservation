@@ -20,8 +20,8 @@ a way to skip ahead casually.
 
 **Do not abuse the upstream system:**
 
-- The default polling interval is **3 minutes** (per `ADR-8`). Don't lower it.
-  Configurable down to 3 min only; faster polling triggers a hard ADR review.
+- The default polling interval is **1 minute** (per `ADR-9`). Don't lower it.
+  Configurable down to 1 min only; faster polling triggers a hard ADR review.
 - Run **at most one instance per identity**. The booker is a single-shot state
   machine (per `ADR-6`) — it grabs one slot and stops. Don't bypass.
 - **Do not run multiple identities** to maximize your chances. That's exactly
@@ -101,7 +101,7 @@ If you want to extend, please open an issue first to align on scope.
 
 A small polling loop that:
 
-1. Every 3 minutes, queries the Tokyo MPD's 学科試験 reservation calendar
+1. Every minute, queries the Tokyo MPD's 学科試験 reservation calendar
    API (`/calgetres`) for your candidate test centers (府中 / 鮫洲 / 江東).
 2. Diffs against a local snapshot.
 3. When a new open slot appears within your acceptable date range:
@@ -147,7 +147,7 @@ copy-paste this prompt:
 >    auto-booking. If I just want monitoring + email alerts, skip these.
 > 6. Running a one-shot dry test with `uv run dl-poll --config
 >    config.local.json --silent-baseline` to make sure email lands.
-> 7. Setting up the launchd agent from `RUNBOOK.md` for 3-minute polling.
+> 7. Setting up the launchd agent from `RUNBOOK.md` for 1-minute polling.
 > 8. Confirming the **first run is dry-run only** — I want to manually
 >    review the payload it would submit before unlocking real booking with
 >    `--book-real`.

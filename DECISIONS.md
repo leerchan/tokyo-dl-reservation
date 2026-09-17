@@ -333,7 +333,7 @@ detected as drift on the next Stop and corrected.
 ### ADR-8: 轮询节流收紧到 3 分钟一轮(supersedes ADR-3)
 
 - **Date**: 2026-09-17
-- **Status**: Accepted
+- **Status**: Superseded by ADR-9
 - **Supersedes**: ADR-3
 - **Context**: ADR-3 把 5 分钟定为 v0 长期工作频率,并保留 ADR-2 的
   约束"任何 < 5 分钟的频率需新一条 ADR"。自 2026-05-08 上线以来按
@@ -363,3 +363,31 @@ detected as drift on the next Stop and corrected.
     实例都应重新核对总请求强度,不能默认继续收紧。
   - − 仍受 ADR-2 中 Article 8(4) 对 v2 SaaS 形态的硬阻塞约束(本 ADR
     不超出个人使用范围)。
+
+### ADR-9: 轮询节流收紧到 1 分钟一轮(supersedes ADR-8)
+
+- **Date**: 2026-09-17
+- **Status**: Accepted
+- **Supersedes**: ADR-8
+- **Context**: ADR-8 于同日把频率从 5 分钟收紧到 3 分钟,并保留"任何
+  < 3 分钟需新一条 ADR"的约束。用户随后要求进一步收紧到 1 分钟,以把
+  空缺发现延迟压到最短。本 ADR 即 ADR-8 要求的显式评估。
+- **Options considered**:
+  - A. **维持 3 分钟/轮**(ADR-8 现状) — 请求强度约为 5 分钟基线的
+    1.67 倍,余量充足;空缺最长 3 分钟才被发现。
+  - B. **2 分钟/轮** — 基线的 2.5 倍;折中档,但用户明确要 1 分钟。
+  - C. **1 分钟/轮**(本 ADR) — 基线的 5 倍,每小时 60 轮;单实例
+    sustained 强度开始接近"一个一直在刷新日历的用户",Article 8(8)
+    的软约束余量明显变薄;多人 compose 部署时叠加更高。
+- **Decision**: **C(1 分钟一轮)**,按用户明确要求。落点:`compose.yml`
+  `POLL_INTERVAL=60`(`partner` 的 `START_DELAY` 同步改为半周期 30s)、
+  `Dockerfile` 默认值 60、`RUNBOOK.md` launchd `StartInterval` 60。
+  **任何 < 1 分钟的频率仍需新一条 ADR**;本项目不再默认继续收紧。
+- **Consequences**:
+  - + 空缺发现延迟上限从 3 分钟降到 1 分钟。
+  - − 单日请求量为 5 分钟基线的 5 倍(ADR-8 的 3 倍)。出现 429 / 5xx、
+    `CalGetResError` 连续报错或任何限流迹象时,**立即**按 RUNBOOK 暂停
+    并回退到 ADR-8 的 180 秒(三处改回 180 即可),再评估。
+  - − 多实例部署(compose 里 `me` + `partner`)叠加后为 2 req/轮/月 ×
+    60 轮/小时,加实例前必须重新核对总强度。
+  - − 仍受 ADR-2 中 Article 8(4) 对 v2 SaaS 形态的硬阻塞约束。
