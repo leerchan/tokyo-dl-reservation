@@ -141,7 +141,7 @@ v0 推荐 macOS launchd(research 机器是 macOS)。示例 plist
   </array>
   <key>WorkingDirectory</key>
   <string>/path/to/dl-reservation</string>
-  <key>StartInterval</key><integer>60</integer>  <!-- 1 分钟,ADR-9 supersedes ADR-8 -->
+  <key>StartInterval</key><integer>30</integer>  <!-- 30 秒,ADR-10 supersedes ADR-9 -->
   <key>StandardOutPath</key><string>/tmp/dl-reservation.log</string>
   <key>StandardErrorPath</key><string>/tmp/dl-reservation.log</string>
   <key>RunAtLoad</key><false/>

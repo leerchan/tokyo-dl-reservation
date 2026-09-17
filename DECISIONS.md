@@ -367,7 +367,7 @@ detected as drift on the next Stop and corrected.
 ### ADR-9: 轮询节流收紧到 1 分钟一轮(supersedes ADR-8)
 
 - **Date**: 2026-09-17
-- **Status**: Accepted
+- **Status**: Superseded by ADR-10
 - **Supersedes**: ADR-8
 - **Context**: ADR-8 于同日把频率从 5 分钟收紧到 3 分钟,并保留"任何
   < 3 分钟需新一条 ADR"的约束。用户随后要求进一步收紧到 1 分钟,以把
@@ -390,4 +390,28 @@ detected as drift on the next Stop and corrected.
     并回退到 ADR-8 的 180 秒(三处改回 180 即可),再评估。
   - − 多实例部署(compose 里 `me` + `partner`)叠加后为 2 req/轮/月 ×
     60 轮/小时,加实例前必须重新核对总强度。
+  - − 仍受 ADR-2 中 Article 8(4) 对 v2 SaaS 形态的硬阻塞约束。
+
+### ADR-10: 轮询节流收紧到 30 秒一轮(supersedes ADR-9)
+
+- **Date**: 2026-09-17
+- **Status**: Accepted
+- **Supersedes**: ADR-9
+- **Context**: ADR-9 把频率定为 1 分钟,并约束"任何 < 1 分钟需新一条
+  ADR"。用户要求进一步收紧到 30 秒。本 ADR 即该显式评估。
+- **Options considered**:
+  - A. **维持 1 分钟/轮**(ADR-9 现状) — 基线(5 分钟)的 5 倍。
+  - B. **30 秒/轮**(本 ADR) — 基线的 10 倍,每小时 120 轮;已超出
+    "正常用户刷新日历"的强度,Article 8(8) 软约束余量很薄。
+- **Decision**: **B(30 秒一轮)**,按用户明确要求。落点:`compose.yml`
+  `POLL_INTERVAL=30`(`partner` 的 `START_DELAY` 同步改为半周期 15s)、
+  `Dockerfile` 默认值 30、`RUNBOOK.md` launchd `StartInterval` 30。
+  **任何 < 30 秒的频率仍需新一条 ADR**。
+- **Consequences**:
+  - + 空缺发现延迟上限从 1 分钟降到 30 秒。
+  - − 单日请求量为 5 分钟基线的 10 倍。单轮耗时若接近 30 秒,launchd
+    会跳过重叠触发、docker 循环则实际间隔 = 耗时 + 30 秒。
+  - − 出现 429 / 5xx、`CalGetResError` 连续报错或任何限流迹象时,**立即**
+    按 RUNBOOK 暂停并回退到 ADR-9 的 60 秒(三处改回 60 即可),再评估。
+  - − 多实例部署叠加后为 2 req/轮/月 × 120 轮/小时,加实例前必须重新核对。
   - − 仍受 ADR-2 中 Article 8(4) 对 v2 SaaS 形态的硬阻塞约束。
