@@ -103,7 +103,7 @@ detected as drift on the next Stop and corrected.
 <!-- synced: 2026-05-08 drawer-id=drawer_3cats_decisions_dl-reservation_9f5b578ac7894585 sidecar-hash=db097fd5c2642d9657fb08bb7e9ef241 target=3cats/decisions_dl-reservation schema=v1 -->
 
 - **Date**: 2026-05-08
-- **Status**: Accepted
+- **Status**: Superseded by ADR-8
 - **Supersedes**: ADR-2
 - **Context**: ADR-2 选 10 分钟一轮作为起步,留出"一周后实测无限流再
   收紧"的下探空间。用户在 v0 上线当天 review 时反向提出:既然 1.2
@@ -329,3 +329,37 @@ detected as drift on the next Stop and corrected.
   - − .env.local 文件权限是 600(文件级),如果用户的 macOS 账号被
     入侵,凭据明文可读。Keychain 在同一场景下需要额外的 GUI prompt
     才能解锁。这是用户已 informed-accept 的 trade-off。
+
+### ADR-8: 轮询节流收紧到 3 分钟一轮(supersedes ADR-3)
+
+- **Date**: 2026-09-17
+- **Status**: Accepted
+- **Supersedes**: ADR-3
+- **Context**: ADR-3 把 5 分钟定为 v0 长期工作频率,并保留 ADR-2 的
+  约束"任何 < 5 分钟的频率需新一条 ADR"。自 2026-05-08 上线以来按
+  5 分钟跑了四个多月,未观察到限流 / 封禁迹象(见 RUNBOOK
+  §Incident playbooks 无相关记录)。用户 2026-09-17 要求把检测间隔改
+  为 3 分钟,以缩短空缺发现延迟。本 ADR 即 ADR-3 要求的显式评估。
+- **Options considered**:
+  - A. **维持 5 分钟/轮**(ADR-3 现状) — 零风险变化,但每个空缺最长
+    需 5 分钟才被发现。
+  - B. **3 分钟/轮** — sustained 请求强度为 ADR-3 的 5/3 ≈ 1.67 倍
+    (以 ADR-3 口径 0.6 req/min 计约 1.0 req/min),仍远低于一个真实
+    用户点穿日历时的瞬时强度;空缺发现延迟从最长 5 分钟降到最长 3
+    分钟。
+  - C. **≤ 2 分钟/轮** — 延迟更短,但接近"持续像一个一直刷新的用户"
+    的显眼边界,且 ADR-2 §Context Article 8(8) 的软约束余量明显变薄。
+- **Decision**: **B(3 分钟一轮)**。`POLL_INTERVAL` / launchd
+  `StartInterval` 默认值改为 180 秒;compose 中 `partner` 的
+  `START_DELAY` 同步改为 90 秒以维持"错开半个周期"。**任何 < 3 分钟
+  的频率仍需新一条 ADR**(ADR-2 §Decision 末段约束保留,阈值下移)。
+- **Consequences**:
+  - + 空缺发现延迟上限从 5 分钟降到 3 分钟。
+  - + 四个月实测数据支持:5 分钟档无任何限流迹象,收紧一档仍在
+    Article 8(8) 软约束余量内。
+  - − 单日请求量约为原来的 1.67 倍;若出现 429 / 5xx 或
+    `CalGetResError` 连续报错,按 RUNBOOK 暂停并回退到 5 分钟。
+  - − 多人部署(compose 里多个 service)时叠加强度更高;每加一个
+    实例都应重新核对总请求强度,不能默认继续收紧。
+  - − 仍受 ADR-2 中 Article 8(4) 对 v2 SaaS 形态的硬阻塞约束(本 ADR
+    不超出个人使用范围)。
