@@ -5,7 +5,7 @@ x-poller: &poller
   build: .
   restart: unless-stopped
   environment: &poller-env
-    POLL_INTERVAL: "300"
+    POLL_INTERVAL: "180"   # 3 分钟,ADR-8
     # DL_RES_FLAGS 在各自的 .env.local 里设(每人不同,且服务器上不必改本文件)
 
 services:
@@ -33,7 +33,7 @@ services:
     env_file: .env.partner.local
     environment:
       <<: *poller-env
-      START_DELAY: "150"   # 错开半个周期,别和 me 同一秒打上游
+      START_DELAY: "90"    # 错开半个周期,别和 me 同一秒打上游
     volumes:
       - ./config.partner.local.json:/app/config.local.json:ro
       - ./state-partner:/app/state
