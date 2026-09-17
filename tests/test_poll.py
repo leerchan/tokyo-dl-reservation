@@ -463,3 +463,29 @@ def test_earliest_acceptable_date_excludes_earlier_slots():
         req, today=date(2026, 5, 1), now=datetime(2026, 5, 1, 8, 0),
     )
     assert [s.date for s in kept] == ["20260610", "20260620"]
+
+
+def test_booker_fires_before_notifications(tmp_path: Path):
+    """putres must go out before SMTP/bark. Those cost ~3s and upstream
+    answered B4002 (満席) on 2026-09-17 when the booking lagged the fetch.
+    """
+    from dl_reservation.booker import BookerOutcome
+
+    order: list[str] = []
+    notifier = _RecordNotifier()
+    original_notify = notifier.notify
+    notifier.notify = lambda slots: (order.append("notify"), original_notify(slots))[1]
+
+    booker = _StubBooker(BookerOutcome.SUCCESS)
+    original_try_book = booker.try_book
+    booker.try_book = lambda slot: (order.append("book"), original_try_book(slot))[1]
+
+    with patch("dl_reservation.poll.fetch_month", return_value=[_slot("20260515")]):
+        poll_once(
+            _request(), tmp_path / "snap.json", notifier,
+            today=date(2026, 5, 8),
+            now=datetime(2026, 5, 8, 0, 0, tzinfo=timezone.utc),
+            booker=booker,
+        )
+
+    assert order == ["book", "notify"]

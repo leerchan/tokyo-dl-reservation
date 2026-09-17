@@ -1,4 +1,4 @@
-"""Single poll run: fetch → diff → notify → persist.
+"""Single poll run: fetch → diff → book → notify → persist.
 
 Entry point for cron / launchd. Run via `dl-poll` (project script) or
 `python -m dl_reservation.poll`.
@@ -105,7 +105,7 @@ def poll_once(
     now: datetime | None = None,
     booker: Booker | None = None,
 ) -> list[Slot]:
-    """Run the poll-fetch-diff-notify cycle once. Returns slots that would
+    """Run the poll-fetch-diff-book-notify cycle once. Returns slots that would
     have been notified — if `silent_baseline` is true and no prior snapshot
     existed, the notifier is intentionally not invoked but the snapshot is
     still persisted, so the next run starts diffing from a real baseline.
@@ -159,23 +159,28 @@ def poll_once(
     # BOOKED does not silence alerts: the user may have cancelled on the
     # website without --reset-booking, and a missed opening costs more than
     # a redundant push. Only the booker short-circuits (see _maybe_book).
-    if silent_baseline and is_first_run:
+    suppress_notify = silent_baseline and is_first_run
+
+    # Book BEFORE notifying. SMTP + bark cost ~3s, and the openings we chase
+    # are single seats freed by someone else's cancel — upstream answered
+    # B4002 (満席) on 2026-09-17 because putres went out 3s after the fetch.
+    # ponytail: plain reordering, no threads/async — the 3s was the whole gap.
+    if not suppress_notify and booker is not None and new_openings:
+        _maybe_book(booker, new_openings, state_path, notifier)
+
+    if suppress_notify:
         _log.info(
             "silent baseline: persisting %d slot(s) without notifying "
             "(would have flagged %d as new)",
             len(relevant), len(new_openings),
         )
-        suppress_notify = True
     else:
         notifier.notify(new_openings)
-        suppress_notify = False
 
     snapshot.save(state_path, relevant)
 
     if not suppress_notify:
         _maybe_send_heartbeat(request, relevant, state_path, notifier, now)
-        if booker is not None and new_openings:
-            _maybe_book(booker, new_openings, state_path, notifier)
 
     return new_openings
 
