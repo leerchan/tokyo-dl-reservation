@@ -278,6 +278,14 @@ def test_bark_notifier_posts_openings_and_skips_empty(monkeypatch):
         assert payload["level"] == "timeSensitive"
 
 
+def test_bark_notifier_level_from_env(monkeypatch):
+    monkeypatch.setenv("DL_RES_BARK_URL", "https://api.day.app/devicekey")
+    monkeypatch.setenv("DL_RES_BARK_LEVEL", "critical")
+    with patch("dl_reservation.notifier.httpx.post") as post:
+        BarkNotifier.from_env().notify([_slot()])
+        assert post.call_args.kwargs["json"]["level"] == "critical"
+
+
 def test_bark_notifier_from_env_requires_url(monkeypatch):
     monkeypatch.delenv("DL_RES_BARK_URL", raising=False)
     with pytest.raises(RuntimeError, match="DL_RES_BARK_URL"):

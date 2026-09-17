@@ -611,10 +611,14 @@ class BarkNotifier:
     """
 
     ENV_URL = "DL_RES_BARK_URL"
+    ENV_LEVEL = "DL_RES_BARK_LEVEL"  # 空席 push only; passive/active/timeSensitive/critical
     _MAX_LINES = 8  # ponytail: push body is small; email has the full list
 
-    def __init__(self, url: str, log: logging.Logger | None = None) -> None:
+    def __init__(
+        self, url: str, log: logging.Logger | None = None, *, level: str = "timeSensitive"
+    ) -> None:
         self._url = url.rstrip("/")
+        self._level = level
         self._log = log or logging.getLogger("dl_reservation.notify.bark")
 
     @classmethod
@@ -622,7 +626,7 @@ class BarkNotifier:
         url = os.environ.get(cls.ENV_URL)
         if not url:
             raise RuntimeError(f"missing required env vars: {cls.ENV_URL}")
-        return cls(url)
+        return cls(url, level=os.environ.get(cls.ENV_LEVEL) or "timeSensitive")
 
     def notify(self, openings: Iterable[Slot]) -> None:
         slots = list(openings)
@@ -630,7 +634,9 @@ class BarkNotifier:
             return
         lines = [_format_slot_line(s) for s in slots]
         more = f"\n…+{len(lines) - self._MAX_LINES}" if len(lines) > self._MAX_LINES else ""
-        self._push(f"空席 ×{len(slots)}", "\n".join(lines[: self._MAX_LINES]) + more)
+        self._push(
+            f"空席 ×{len(slots)}", "\n".join(lines[: self._MAX_LINES]) + more, level=self._level
+        )
 
     def heartbeat(self, payload: HeartbeatPayload) -> None:
         self._push(

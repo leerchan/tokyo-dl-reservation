@@ -108,7 +108,7 @@ A small polling loop that:
    - Sends you an email immediately (with how-to-book instructions and a
      direct entry-page link).
    - **Optional**: also pushes to your iPhone via [Bark](https://bark.day.app)
-     — set `DL_RES_BARK_URL` in `.env.local` (see `.env.example`).
+     — set `DL_RES_BARK_URL` in `.env.local` (see `.env.example`); `DL_RES_BARK_LEVEL` sets the 空席 push importance (default `timeSensitive`).
    - **Optional**: auto-submits a booking via `/putres` (single-shot, with
      a mandatory dry-run first; see `DECISIONS.md#ADR-5`/`ADR-6`).
 4. After a successful booking:
