@@ -156,26 +156,15 @@ def poll_once(
         len(relevant), sum(s.is_open for s in relevant), len(new_openings),
     )
 
-    # Once the user holds a booking, "new slot" alerts become noise — they
-    # already have what they wanted. Suppress notify + heartbeat + booker;
-    # snapshot is still persisted so a `--reset-booking` user starts from
-    # a fresh baseline rather than re-flagging every existing opening.
-    already_booked = booking_state.load(booking_state.path_for(state_path)) is not None
-
+    # BOOKED does not silence alerts: the user may have cancelled on the
+    # website without --reset-booking, and a missed opening costs more than
+    # a redundant push. Only the booker short-circuits (see _maybe_book).
     if silent_baseline and is_first_run:
         _log.info(
             "silent baseline: persisting %d slot(s) without notifying "
             "(would have flagged %d as new)",
             len(relevant), len(new_openings),
         )
-        suppress_notify = True
-    elif already_booked:
-        if new_openings:
-            _log.info(
-                "BOOKED — suppressing %d new-opening alert(s); user already "
-                "holds a slot, no further action needed",
-                len(new_openings),
-            )
         suppress_notify = True
     else:
         notifier.notify(new_openings)

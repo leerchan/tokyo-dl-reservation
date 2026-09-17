@@ -357,8 +357,8 @@ def test_booker_short_circuits_when_already_booked(tmp_path: Path):
     assert notifier.booked_calls == []
 
 
-def test_notify_and_heartbeat_suppressed_when_already_booked(tmp_path: Path):
-    """Once user holds a booking, new-slot alerts are noise — silence them."""
+def test_notify_still_fires_when_already_booked(tmp_path: Path):
+    """BOOKED must not silence alerts — user may have cancelled on the site."""
     from dl_reservation.booking_state import BookedSlot, path_for, save as save_booked
 
     state = tmp_path / "snap.json"
@@ -378,9 +378,7 @@ def test_notify_and_heartbeat_suppressed_when_already_booked(tmp_path: Path):
             today=date(2026, 5, 8),
             now=datetime(2026, 5, 8, 0, 0, tzinfo=timezone.utc),
         )
-    # New slot exists, but BOOKED state means user already holds one → silence.
-    assert notifier.notify_calls == []
-    assert notifier.heartbeat_calls == []
+    assert notifier.notify_calls == [[new_slot]]
 
 
 def test_booker_dry_run_routes_payload_to_notifier(tmp_path: Path):
